@@ -25,11 +25,13 @@ export function Header() {
           {/* ── Brand + Title ── */}
           <div className="flex items-center gap-4 min-w-0">
             {/* Logo mark */}
-            <img
-              src="/tanishq_logo.png"
-              alt="Tanishq"
-              className="flex-shrink-0 h-10 w-auto object-contain"
-            />
+            <div className="flex-shrink-0 bg-white rounded-md px-2 py-1">
+              <img
+                src={`${import.meta.env.BASE_URL}tanishq_logo.png`}
+                alt="Tanishq"
+                className="h-8 w-auto object-contain block"
+              />
+            </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">

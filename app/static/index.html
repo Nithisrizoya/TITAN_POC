@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jewel Lens — Tanishq Visual Search</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Josefin+Sans:wght@100;200;300&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#fff;color:#1a1a1a}
+
+  .header{background:#6B1A2A;padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between}
+  .logo-wrap{display:flex;align-items:center;gap:10px}
+  .header-sub{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.8px}
+
+  .hero{padding:20px 32px 16px;border-bottom:1px solid #F0E8EA}
+  .hero h1{font-size:20px;font-weight:400;color:#6B1A2A;margin-bottom:3px}
+  .hero p{font-size:12px;color:#aaa;font-style:italic}
+
+  .page{max-width:1140px;margin:0 auto;padding:22px 32px 48px}
+
+  /* 3-COLUMN ROW */
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid #E8DDE0;border-radius:12px;overflow:hidden;background:#FDFBFB;margin-bottom:28px}
+  .col{padding:20px 22px}
+  .col+.col{border-left:1px solid #EDE5E7}
+  .col-title{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#aaa;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+  .col-title::before{content:'';display:inline-block;width:2px;height:10px;background:#6B1A2A;border-radius:2px}
+
+  /* COL 1 — upload */
+  .file-pick{position:relative;display:inline-block;margin-bottom:10px}
+  .file-pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .pick-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border:1px solid #6B1A2A;border-radius:20px;font-size:12px;color:#6B1A2A;cursor:pointer;background:#fff;user-select:none;letter-spacing:.2px}
+  .pick-btn:hover{background:#F8F1F2}
+  .pick-btn svg{width:13px;height:13px;stroke:#6B1A2A;fill:none;stroke-width:2}
+  .fname{display:block;font-size:11px;color:#bbb;margin-bottom:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .fname.chosen{color:#555}
+  .proc-btn{width:100%;padding:10px;background:#6B1A2A;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;transition:background .15s}
+  .proc-btn:hover:not(:disabled){background:#842235}
+  .proc-btn:disabled{opacity:.38;cursor:not-allowed}
+  .proc-status{font-size:11px;color:#aaa;margin-top:8px;min-height:15px}
+
+  /* COL 2 — query image */
+  .img-frame{width:100%;aspect-ratio:1;border:1px solid #E8DDE0;border-radius:10px;background:#F5F0F1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .img-frame img{width:100%;height:100%;object-fit:contain;display:block}
+  .img-ph{text-align:center}
+  .img-ph svg{width:28px;height:28px;stroke:#D8C8CB;fill:none;stroke-width:1.4;display:block;margin:0 auto 6px}
+  .img-ph span{font-size:11px;color:#ccc}
+
+  /* ── COL 3 — LIVE ATTRIBUTE STREAM ─────────────────────────────── */
+  .attrs-list{display:flex;flex-direction:column;gap:6px}
+
+  /* idle / error placeholder */
+  .attrs-empty{font-size:11px;color:#ccc;font-style:italic;margin-top:4px}
+   
+  .user-box {
+  border: 1px solid #ccc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+}
+  /* single-row scanning widget */
+  .scan-widget{display:flex;flex-direction:column;gap:9px;padding:10px 12px;background:#ffffff00;border:1px solid #ffffff00;border-radius:9px}
+  .scan-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#C8902A;display:flex;align-items:center;gap:6px}
+  .scan-spinner{width:8px;height:8px;border:1.5px solid #ffffff;border-top-color:#C8902A;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .scan-text-row{height:18px;overflow:hidden;position:relative}
+  .scan-step-text{font-size:11px;font-family:'Courier New',monospace;color:#5A3010;font-weight:600;position:absolute;white-space:nowrap}
+  .scan-step-text.entering{animation:step-in .28s ease forwards}
+  .scan-step-text.leaving {animation:step-out .22s ease forwards}
+  @keyframes step-in {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes step-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-10px)}}
+
+  /* progress bar */
+  .scan-bar-wrap{height:3px;background:#F0E4DC;border-radius:2px;overflow:hidden}
+  .scan-bar-fill{height:100%;width:0%;border-radius:2px;background:linear-gradient(to right,#6B1A2A,#C8902A);transition:width .42s ease}
+  /* shimmer on the bar */
+  .scan-bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.5) 50%,transparent 100%);animation:shimmer 1.4s infinite;width:60px}
+  .scan-bar-wrap{position:relative}
+
+  @keyframes shimmer{0%{left:-60px}100%{left:100%}}
+
+  /* final revealed attr rows (slide in from left) */
+  .attr-row{display:flex;align-items:baseline;gap:6px;padding:6px 10px;background:#fff;border:1px solid #EBD9DC;border-radius:7px;opacity:0;transform:translateX(-10px);animation:attr-slide .35s ease forwards}
+  @keyframes attr-slide{to{opacity:1;transform:translateX(0)}}
+  .attr-k{font-size:11px;color:#6B1A2A;font-weight:600;text-transform:capitalize;white-space:nowrap;min-width:90px}
+  .attr-sep{color:#D0B0B6;font-size:10px}
+  .attr-v{font-size:11px;color:#555;line-height:1.4}
+
+  /* RESULTS */
+  .results-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  .results-hd h2{font-size:14px;font-weight:500;color:#1a1a1a}
+  .results-hd small{font-size:11px;color:#bbb}
+  .section-divider{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .section-divider hr{flex:1;border:none;border-top:1px solid #F0E8EA}
+  .section-divider span{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#ccc}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px}
+  .card{border:1px solid #EEEAE8;border-radius:10px;overflow:hidden;background:#fff;transition:border-color .15s,box-shadow .15s;cursor:pointer}
+  .card:hover{border-color:#C9A8AF;box-shadow:0 4px 20px rgba(107,26,42,.12)}
+
+  /* ── CARD IMAGE + GOLD HOVER OVERLAY ─────────────────────────────── */
+  .card-img{aspect-ratio:1;background:#F9F6F6;position:relative;overflow:hidden}
+  .card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .28s}
+  .card:hover .card-img img{transform:scale(1.05)}
+  .rank-badge{position:absolute;top:8px;left:8px;background:#6B1A2A;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;z-index:2}
+  .score-badge{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.92);color:#9A7200;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;border:1px solid #EDE0BC;z-index:2}
+
+  /* Gold ambient hover overlay */
+  .hover-overlay{
+    position:absolute;inset:0;
+    background:linear-gradient(
+      to top,
+      rgba(120,72,5,.88) 0%,
+      rgba(180,120,15,.72) 45%,
+      rgba(212,175,55,.22) 100%
+    );
+    backdrop-filter:blur(1px);
+    display:flex;flex-direction:column;justify-content:flex-end;
+    padding:11px 12px 12px;
+    opacity:0;transform:translateY(8px);
+    transition:opacity .24s ease,transform .24s ease;
+    z-index:3
+  }
+  .card:hover .hover-overlay{opacity:1;transform:translateY(0)}
+
+  .hov-title{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,220,140,.65);margin-bottom:7px}
+  .hov-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+  .hov-label{font-size:10px;color:rgba(255,230,180,.70);letter-spacing:.1px}
+  .hov-val{font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+  .hov-val.price{color:#FFE066;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .hov-val.green{color:#AAFAAA;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .hov-val.low{color:#FFCF88}
+  .hov-divider{border:none;border-top:1px solid rgba(255,200,100,.22);margin:5px 0}
+
+  .card-body{padding:10px 12px 12px}
+  .card-name{font-size:12px;color:#1a1a1a;line-height:1.4;margin-bottom:4px;min-height:32px;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card-meta{font-size:11px;color:#bbb;margin-bottom:5px}
+  .scores{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+  .stag{font-size:10px;padding:2px 7px;border-radius:12px;background:#F9F5F6;border:1px solid #EADCE0;color:#8A4455}
+  .stag.gold{background:#FDFBF0;border-color:#E8DCAA;color:#9A7200}
+  .view-link{font-size:11px;color:#6B1A2A;text-decoration:none}
+  .view-link:hover{text-decoration:underline}
+
+  .empty{text-align:center;padding:32px 24px}
+  .empty svg{width:32px;height:32px;stroke:#DDD;fill:none;stroke-width:1.2;display:block;margin:0 auto 10px}
+  .empty p{font-size:12px;color:#ccc;line-height:1.7}
+
+  /* ── AI RECOMMENDATION PANEL ─────────────────────────────────────── */
+  .rec-section{margin-bottom:28px}
+  .rec-card{border:1px solid #E8DCAA;border-radius:12px;background:#FFFDF7;overflow:hidden}
+  .rec-header{
+    display:flex;align-items:center;gap:10px;padding:14px 20px;
+    background:linear-gradient(90deg,#6B1A2A,#9A3048);
+  }
+  .rec-icon{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .rec-icon svg{width:14px;height:14px;stroke:#FFD966;fill:none;stroke-width:2}
+  .rec-title{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#fff}
+
+  .rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0}
+  .rec-insight{
+    padding:16px 18px;border-right:1px solid #F0E6CC;border-bottom:1px solid #F0E6CC;
+    display:flex;flex-direction:column;gap:7px;
+  }
+  .rec-insight:last-child{border-right:none}
+  .rec-ins-top{display:flex;align-items:center;gap:7px}
+  .rec-ins-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;flex-shrink:0}
+  .rec-ins-icon svg{width:13px;height:13px;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .rec-ins-label{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase}
+  .rec-ins-text{font-size:12px;color:#3A2010;line-height:1.65}
+
+  /* per-label colours */
+  .ins-region   .rec-ins-icon{background:#EEF2FF} .ins-region   .rec-ins-icon svg{stroke:#4F46E5} .ins-region   .rec-ins-label{color:#4F46E5}
+  .ins-month    .rec-ins-icon{background:#FFF4E6} .ins-month    .rec-ins-icon svg{stroke:#D97706} .ins-month    .rec-ins-label{color:#D97706}
+  .ins-sales    .rec-ins-icon{background:#ECFDF5} .ins-sales    .rec-ins-icon svg{stroke:#059669} .ins-sales    .rec-ins-label{color:#059669}
+  .ins-stock    .rec-ins-icon{background:#FFF7ED} .ins-stock    .rec-ins-icon svg{stroke:#EA580C} .ins-stock    .rec-ins-label{color:#EA580C}
+  .ins-opp      .rec-ins-icon{background:#FDF4FF} .ins-opp      .rec-ins-icon svg{stroke:#9333EA} .ins-opp      .rec-ins-label{color:#9333EA}
+
+  /* skeleton loader */
+  .rec-loading{display:flex;flex-direction:column;gap:10px;padding:18px 20px}
+  .rec-skel{height:12px;border-radius:6px;background:linear-gradient(90deg,#F5EDD0 25%,#EDE0B0 50%,#F5EDD0 75%);
+    background-size:200% 100%;animation:skel-slide 1.4s infinite}
+  .rec-skel:nth-child(2){width:85%}.rec-skel:nth-child(3){width:90%}.rec-skel:nth-child(4){width:70%}
+  @keyframes skel-slide{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-wrap" style="display:flex;align-items:center;gap:14px">
+    <img src="/static/tanishq_logo.png" alt="Tanishq" style="height:38px;object-fit:contain;display:block"/>
+    <div style="height:34px;width:1px;background:rgba(255,255,255,.22)"></div>
+    <div style="display:flex;flex-direction:column;justify-content:center;gap:4px">
+      <span style="
+        font-family:'Playfair Display',serif;
+        font-size:20px;
+        font-weight:700;
+        font-style:italic;
+        letter-spacing:1.5px;
+        line-height:1;
+        color:#FFD700;
+        text-shadow:0 0 12px rgba(255,210,0,.6), 0 2px 4px rgba(0,0,0,.4);
+      ">Jewelara</span>
+      <span style="
+        font-family:'Josefin Sans',sans-serif;
+        font-size:8px;
+        font-weight:300;
+        letter-spacing:6px;
+        color:#ffffff;
+        text-shadow:0 0 8px rgba(255,255,255,.7);
+        text-transform:uppercase;
+        line-height:1;
+      ">Vision</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px">
+    <a id="dashLink" href="/dashboard/" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:linear-gradient(135deg,#C8A24A,#9A6E20);border-radius:8px;color:#fff;font-size:11px;font-weight:600;letter-spacing:.6px;text-decoration:none;border:none;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <span class="header-sub user-box">User</span>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Jewel Lens — Find jewellery that speaks to you</h1>
+  <p>Upload a photo — we'll surface the pieces that match its beauty</p>
+</div>
+
+<div class="page">
+
+  <div class="three-col">
+
+    <!-- COL 1: Upload -->
+    <div class="col">
+      <div class="col-title">Upload image</div>
+      <div class="file-pick">
+        <input type="file" id="file" accept="image/*"/>
+        <span class="pick-btn">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Choose image
+        </span>
+      </div>
+      <span class="fname" id="fname">No file selected</span>
+      <button class="proc-btn" id="procBtn" disabled>Process</button>
+      <div class="proc-status" id="procStatus"></div>
+    </div>
+
+    <!-- COL 2: Query image -->
+    <div class="col">
+      <div class="col-title">Query image</div>
+      <div class="img-frame" id="imgFrame">
+        <div class="img-ph">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Preview appears here</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL 3: Live attribute stream -->
+    <div class="col">
+      <div class="col-title">Identified attributes</div>
+      <div id="attrsList" class="attrs-list">
+        <span class="attrs-empty">Attributes appear after processing</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsSection" style="display:none">
+
+    <!-- AI RECOMMENDATION -->
+    <div class="rec-section" id="recSection" style="display:none">
+      <div class="section-divider"><hr/><span>AI Recommendation</span><hr/></div>
+      <div class="rec-card">
+        <div class="rec-header">
+          <div class="rec-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <span class="rec-title">AI Recommendation</span>
+        </div>
+        <div id="recBody">
+          <div class="rec-loading" id="recLoader">
+            <div class="rec-skel" style="width:95%"></div>
+            <div class="rec-skel"></div>
+            <div class="rec-skel"></div>
+            <div class="rec-skel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" style="margin-top:28px"><hr/><span>Matched pieces</span><hr/></div>
+    <div class="results-hd">
+      <h2>Similar pieces</h2>
+      <small id="resultCount"></small>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="empty" id="emptyState">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="3"/></svg>
+    <p>Upload a jewellery photo to discover<br/>visually similar pieces from our collection</p>
+  </div>
+
+</div>
+
+<script>
+// ── DOM refs ─────────────────────────────────────────────────────────
+const fileEl         = document.getElementById('file');
+const fnEl           = document.getElementById('fname');
+const imgFrame       = document.getElementById('imgFrame');
+const procBtn        = document.getElementById('procBtn');
+const procStatus     = document.getElementById('procStatus');
+const attrsList      = document.getElementById('attrsList');
+const resultsSection = document.getElementById('resultsSection');
+const resultCount    = document.getElementById('resultCount');
+const gridEl         = document.getElementById('grid');
+const emptyState     = document.getElementById('emptyState');
+const recSection     = document.getElementById('recSection');
+const recBody        = document.getElementById('recBody');
+const recLoader      = document.getElementById('recLoader');
+
+const phHTML = `<div class="img-ph">
+  <svg viewBox="0 0 24 24" style="width:28px;height:28px;stroke:#D8C8CB;fill:none;stroke-width:1.4;display:block;margin:0 auto 6px">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+  </svg>
+  <span style="font-size:11px;color:#ccc">Preview appears here</span>
+</div>`;
+
+// ── Attribute scanning steps ─────────────────────────────────────────
+const SCAN_STEPS = [
+  'AI searching attributes…',
+  'Identifying category…',
+  'Identifying material colour…',
+  'Identifying gender…',
+  'Identifying occasion…',
+  'Identifying jewellery type…',
+];
+
+let scanTimer = null;
+let scanIndex = 0;
+
+function buildWidget() {
+  attrsList.innerHTML = `
+    <div class="scan-widget">
+      
+      <div class="scan-text-row" id="scanTextRow">
+        <span class="scan-step-text entering" id="scanText">${SCAN_STEPS[0]}</span>
+      </div>
+      <div class="scan-bar-wrap">
+        <div class="scan-bar-fill" id="scanBar"></div>
+      </div>
+    </div>`;
+  setBarWidth(0);
+}
+
+function setBarWidth(idx) {
+  const bar = document.getElementById('scanBar');
+  if (bar) bar.style.width = Math.min(((idx + 1) / SCAN_STEPS.length) * 92, 92) + '%';
+}
+
+function swapText(newLabel) {
+  const row  = document.getElementById('scanTextRow');
+  const old  = document.getElementById('scanText');
+  if (!row || !old) return;
+
+  // Slide old text up
+  old.classList.remove('entering');
+  old.classList.add('leaving');
+
+  // After leaving animation, insert new text sliding in from below
+  setTimeout(() => {
+    old.remove();
+    const el = document.createElement('span');
+    el.id = 'scanText';
+    el.className = 'scan-step-text entering';
+    el.textContent = newLabel;
+    row.appendChild(el);
+  }, 220);
+}
+
+function startScan() {
+  scanIndex = 0;
+  buildWidget();
+
+  scanTimer = setInterval(() => {
+    scanIndex++;
+    if (scanIndex >= SCAN_STEPS.length) { clearInterval(scanTimer); return; }
+    swapText(SCAN_STEPS[scanIndex]);
+    setBarWidth(scanIndex);
+  }, 500);
+}
+
+function stopScan() {
+  clearInterval(scanTimer);
+  // Fill bar to 100 %
+  const bar = document.getElementById('scanBar');
+  if (bar) bar.style.width = '100%';
+}
+
+// ── Reveal attrs one-by-one after response ───────────────────────────
+function revealAttrs(a) {
+  stopScan();
+  attrsList.innerHTML = '';
+
+  const entries = Object.entries(a).filter(([, v]) => v && String(v).trim());
+  if (!entries.length) {
+    attrsList.innerHTML = '<span class="attrs-empty">No attributes detected</span>';
+    return;
+  }
+
+  entries.forEach(([k, v], i) => {
+    setTimeout(() => {
+      const row = document.createElement('div');
+      row.className = 'attr-row';
+      row.style.animationDelay = '0ms'; // already staggered via setTimeout
+      row.innerHTML = `<span class="attr-k">${k.replace(/_/g, ' ')}</span>
+                       <span class="attr-sep">·</span>
+                       <span class="attr-v">${v}</span>`;
+      attrsList.appendChild(row);
+    }, i * 260);
+  });
+}
+
+// ── File pick ────────────────────────────────────────────────────────
+fileEl.addEventListener('change', () => {
+  const f = fileEl.files[0];
+  procBtn.disabled = !f;
+  procStatus.textContent = '';
+  if (!f) {
+    fnEl.textContent = 'No file selected';
+    fnEl.className = 'fname';
+    imgFrame.innerHTML = phHTML;
+    attrsList.innerHTML = '<span class="attrs-empty">Attributes appear after processing</span>';
+    sessionStorage.removeItem('jv_image_src');
+    sessionStorage.removeItem('jv_fname');
+    return;
+  }
+  const n = f.name;
+  fnEl.textContent = n.length > 30 ? n.slice(0, 28) + '…' : n;
+  fnEl.className = 'fname chosen';
+  // FileReader gives base64 that survives page navigation (unlike createObjectURL)
+  const reader = new FileReader();
+  reader.onload = e => {
+    const src = e.target.result;
+    imgFrame.innerHTML = `<img src="${src}" alt="query"/>`;
+    sessionStorage.setItem('jv_image_src', src);
+    sessionStorage.setItem('jv_fname', n);
+  };
+  reader.readAsDataURL(f);
+  attrsList.innerHTML = '<span class="attrs-empty">Attributes appear after processing</span>';
+});
+
+// ── Process click ────────────────────────────────────────────────────
+procBtn.addEventListener('click', async () => {
+  const f = fileEl.files[0]; if (!f) return;
+  procBtn.disabled = true;
+  procStatus.textContent = '';
+  resultsSection.style.display = 'none';
+  emptyState.style.display = 'none';
+
+  startScan();
+
+  const fd = new FormData(); fd.append('file', f);
+  try {
+    const res = await fetch('/api/search', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const data = await res.json();
+
+    revealAttrs(data.gemini_attrs || {});
+    renderResults(data.results || [], data.count || 0);
+    renderRecommendation(data.recommendation || null);
+    // Persist so the user can navigate to the dashboard and return without losing results
+    sessionStorage.setItem('jv_attrs',   JSON.stringify(data.gemini_attrs || {}));
+    sessionStorage.setItem('jv_results', JSON.stringify(data.results || []));
+    sessionStorage.setItem('jv_count',   String(data.count || 0));
+    sessionStorage.setItem('jv_rec',     data.recommendation || '');
+  } catch (e) {
+    stopScan();
+    attrsList.innerHTML = '<span class="attrs-empty">Detection failed</span>';
+    procStatus.textContent = 'Error: ' + e.message;
+    emptyState.style.display = '';
+  } finally {
+    procBtn.disabled = false;
+  }
+});
+
+function formatPrice(n) {
+  const num = Number(n);
+  if (!n || isNaN(num)) return '—';
+  return '₹' + num.toLocaleString('en-IN');
+}
+
+function launchYear(dateStr) {
+  if (!dateStr) return '—';
+  return String(dateStr).split('-')[0].split(' ')[0];
+}
+
+// ── Render results ───────────────────────────────────────────────────
+function renderResults(results, count) {
+  if (!results.length) { emptyState.style.display = ''; return; }
+  emptyState.style.display = 'none';
+  resultCount.textContent = count + ' results';
+  gridEl.innerHTML = '';
+
+  results.forEach((r) => {
+    const meta  = [r.category, r.metal_type, r.material_colour].filter(Boolean).join(' · ');
+    const link  = r.image_url
+      ? `<a class="view-link" href="${r.image_url}" target="_blank" rel="noopener noreferrer">View product →</a>` : '';
+    const attrS = r.attr_match != null
+      ? `<span class="stag gold">attr ${r.attr_match.toFixed(2)}</span>` : '';
+
+    const stock    = Number(r.current_stock);
+    const stockClass = stock > 0 ? 'green' : 'low';
+    const stockLabel = stock > 0 ? stock + ' units' : 'Out of stock';
+    const rating   = r.avg_rating ? parseFloat(r.avg_rating).toFixed(1) + ' ★' : '—';
+    const sales3m  = r.sales_3m   ? Number(r.sales_3m) + ' units' : '—';
+    const simPct   = r.final_score.toFixed(3);
+
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML = `
+      <div class="card-img">
+        <img src="${r.image}" loading="lazy" alt="${r.product_name || ''}"/>
+        <span class="rank-badge">#${r.rank}</span>
+        <span class="score-badge">${simPct}</span>
+
+        <div class="hover-overlay">
+          <div class="hov-title">Product info</div>
+          <div class="hov-row">
+            <span class="hov-label">Launch year</span>
+            <span class="hov-val">${launchYear(r.launched_date)}</span>
+          </div>
+          <div class="hov-row">
+            <span class="hov-label">Sales (3 months)</span>
+            <span class="hov-val green">${sales3m}</span>
+          </div>
+          <hr class="hov-divider"/>
+          <div class="hov-row">
+            <span class="hov-label">Price (MRP)</span>
+            <span class="hov-val price">${formatPrice(r.mrp)}</span>
+          </div>
+          <div class="hov-row">
+            <span class="hov-label">Rating</span>
+            <span class="hov-val">${rating}</span>
+          </div>
+          <div class="hov-row">
+            <span class="hov-label">In stock</span>
+            <span class="hov-val ${stockClass}">${stockLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="card-name">${r.product_name || ''}</div>
+        ${meta ? `<div class="card-meta">${meta}</div>` : ''}
+        <div class="scores">
+          <span class="stag">visual ${r.visual_sim != null ? r.visual_sim.toFixed(3) : '—'}</span>
+          ${attrS}
+        </div>
+        ${link}
+      </div>`;
+
+    gridEl.appendChild(c);
+  });
+
+  resultsSection.style.display = '';
+}
+
+// ── Render AI recommendation ─────────────────────────────────────────
+const REC_META = {
+  region:      { cls:'ins-region', label:'Region',      svg:'<circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>' },
+  month:       { cls:'ins-month',  label:'Month',       svg:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
+  sales:       { cls:'ins-sales',  label:'Sales',       svg:'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>' },
+  stock:       { cls:'ins-stock',  label:'Stock',       svg:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+  opportunity: { cls:'ins-opp',    label:'Opportunity', svg:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' },
+  risk:        { cls:'ins-opp',    label:'Risk',        svg:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' },
+};
+
+function renderRecommendation(text) {
+  recSection.style.display = '';
+  if (!text || text.toLowerCase().startsWith('recommendation temporarily')) {
+    recBody.innerHTML = `<div style="padding:18px 20px;font-size:12px;color:#aaa;font-style:italic">${text || 'No recommendation available.'}</div>`;
+    return;
+  }
+
+  // Parse "Label: content" lines — tolerant of markdown artifacts
+  const clean = text.replace(/\*\*/g,'').replace(/^\s*[\*\-•]\s*/gm,'');
+  const lines  = clean.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const insights = [];
+  for (const line of lines) {
+    const colon = line.indexOf(':');
+    if (colon < 1) continue;
+    const key     = line.slice(0, colon).trim().toLowerCase().replace(/[^a-z]/g,'');
+    const content = line.slice(colon + 1).trim();
+    if (!content) continue;
+    const meta = REC_META[key];
+    if (meta) insights.push({ ...meta, content });
+  }
+
+  if (!insights.length) {
+    // Fallback: just show the raw text cleanly
+    recBody.innerHTML = `<div style="padding:18px 20px;font-size:13px;color:#3A2010;line-height:1.75">${clean.replace(/\n/g,'<br>')}</div>`;
+    return;
+  }
+
+  const cards = insights.map(ins => `
+    <div class="rec-insight ${ins.cls}">
+      <div class="rec-ins-top">
+        <div class="rec-ins-icon"><svg viewBox="0 0 24 24">${ins.svg}</svg></div>
+        <span class="rec-ins-label">${ins.label}</span>
+      </div>
+      <div class="rec-ins-text">${ins.content}</div>
+    </div>`).join('');
+
+  recBody.innerHTML = `<div class="rec-grid">${cards}</div>`;
+}
+
+// ── Session restore — reload previous search after navigating away ────
+(function restoreSession() {
+  const src    = sessionStorage.getItem('jv_image_src');
+  const fname  = sessionStorage.getItem('jv_fname');
+  const attrsJ = sessionStorage.getItem('jv_attrs');
+  const resJ   = sessionStorage.getItem('jv_results');
+  const count  = sessionStorage.getItem('jv_count');
+  const rec    = sessionStorage.getItem('jv_rec');
+
+  if (!src) return; // nothing saved yet
+
+  // Restore query image preview
+  imgFrame.innerHTML = `<img src="${src}" alt="query"/>`;
+  if (fname) {
+    fnEl.textContent = fname.length > 30 ? fname.slice(0, 28) + '…' : fname;
+    fnEl.className = 'fname chosen';
+  }
+
+  // Restore identified attributes
+  if (attrsJ) { try { revealAttrs(JSON.parse(attrsJ)); } catch {} }
+
+  // Restore result grid
+  if (resJ) {
+    try { renderResults(JSON.parse(resJ), parseInt(count, 10) || 0); } catch {}
+  }
+
+  // Restore AI recommendation
+  if (rec) { renderRecommendation(rec); }
+})();
+
+// Dashboard link: use /dashboard/ in Docker, fall back to localhost:5173 locally
+fetch('/dashboard/').then(r => {
+  if (!r.ok) document.getElementById('dashLink').href = 'http://localhost:5173';
+}).catch(() => {
+  document.getElementById('dashLink').href = 'http://localhost:5173';
+});
+</script>
+</body>
+</html>

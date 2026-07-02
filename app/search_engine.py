@@ -23,7 +23,6 @@ from transformers import AutoImageProcessor, AutoModel
 
 from app import config
 from app import gemini_client
-from app import recommender
 
 # Single-worker pool keeps concurrent torch inference safe on one device.
 _dino_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="dinov2")
@@ -119,7 +118,7 @@ class SearchEngine:
         top_candidates: int | None = None,
         top_final: int | None = None,
         weights: dict | None = None,
-    ) -> tuple[list[dict], dict, str]:
+    ) -> tuple[list[dict], dict]:
         """
         Full async pipeline:
           1. DINOv2 (thread pool) + Gemini Vision (async) run in parallel.
@@ -230,10 +229,5 @@ class SearchEngine:
                 "final_score":          round(float(row["final_score"]), 4),
                 "image":                "/images/" + img_rel,
             })
-        # ── 7. AI recommendation (runs concurrently via thread pool) ─────
-        recommendation = await recommender.generate_ai_recommendation(
-            results[0] if results else {},
-            results,
-        )
 
-        return results, predicted_attrs, recommendation
+        return results, predicted_attrs

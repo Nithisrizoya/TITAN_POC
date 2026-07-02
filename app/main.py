@@ -13,8 +13,9 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from app import config
+from app import chatbot, config
 from app.search_engine import SearchEngine
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -72,7 +73,7 @@ async def api_search(
         raise HTTPException(400, "Empty file")
 
     try:
-        results, gemini_attrs, recommendation = await engine.search(
+        results, gemini_attrs = await engine.search(
             image_bytes=data,
             top_candidates=top_candidates,
             top_final=top_final,
@@ -85,5 +86,30 @@ async def api_search(
         "count": len(results),
         "gemini_attrs": gemini_attrs,
         "results": results,
-        "recommendation": recommendation,
     }
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[ChatMessage] = []
+    query_attrs: dict = {}
+    products: list[dict] = []
+
+
+@app.post("/api/chat")
+async def api_chat(req: ChatRequest):
+    if not req.message.strip():
+        raise HTTPException(400, "Empty message")
+
+    reply = await chatbot.generate_chat_reply(
+        query_attrs=req.query_attrs,
+        products=req.products,
+        history=[m.model_dump() for m in req.history],
+        message=req.message,
+    )
+    return {"reply": reply}
